@@ -103,13 +103,14 @@ Show the markdown output to the user. For each candidate, the user needs enough 
 - one-line rationale (already produced by the tool: anchor count, influential citations, year)
 - TLDR if the tool surfaced one (topic-mode candidates often have it; anchor-mode usually does not — the recommendations endpoint does not return TLDRs)
 
-Append a short "next step" hint:
+Append a "next step" hint:
 
 ```
 To ingest a candidate: /ingest https://arxiv.org/abs/<arxiv-id>
+To keep it long-term: add it to Zotero via the `zotero` MCP tool (e.g. add-by-DOI/add-by-identifier) — Zotero is the single source of truth for the paper library; don't let the wiki hold a separate copy.
 ```
 
-Do not ingest anything yourself. The user picks.
+Do not ingest anything yourself, and do not add anything to Zotero yourself. The user picks.
 
 ### Step 4: Log
 

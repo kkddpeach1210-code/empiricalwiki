@@ -19,6 +19,7 @@ paper_kind: empirical    # empirical | theory | both —— 决定 ingest 走 /e
 date_added: YYYY-MM-DD
 source_type: tex         # tex | pdf
 s2_id: ""
+citation_key: ""        # 论文引用 key；优先取自 Zotero Better BibTeX（见 /ingest Step 1），否则留空，不臆造
 keywords: []
 domain: ""
 code_url: ""

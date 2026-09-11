@@ -94,6 +94,13 @@ export PYTHON_BIN
 
 ### Step 1: Resolve the source
 
+**Check Zotero first** (when the `zotero` MCP server is connected): regardless of whether the source is an arXiv URL or a local `.pdf`/`.tex`, use whatever identifier you have (title, arXiv ID, DOI) to look up a matching entry in the user's Zotero library via the `zotero` MCP tool.
+
+- Hit: pull the full text directly from that entry's PDF attachment, along with the user's own highlights/annotations (usable in the body and in `## My take`). Do **not** call `prepare_paper_source.py` or `init_discovery.py download` to re-fetch content. Write that entry's Better BibTeX citation key into the paper frontmatter's `citation_key` field — do **not** invent one yourself in Step 2.
+- Miss, or the `zotero` MCP server isn't connected: the local fetch scripts are the fallback — continue with the original flow in 1-4 below; leave `citation_key` blank.
+
+INIT MODE (see next item) still applies this Zotero-first check, but continues to treat `canonical_ingest_path` as the body source — a Zotero hit does not bypass the manifest handoff.
+
 1. If `/init` passed a `canonical_ingest_path`, enter **INIT MODE** and consume that path verbatim. Do not rescan `raw/`. See `references/init-mode.md`.
 2. If the source is an arXiv URL, extract the arXiv ID, use `"$PYTHON_BIN" tools/fetch_s2.py paper <arxiv-id>` to recover the title when possible, then run `"$PYTHON_BIN" tools/init_discovery.py download --raw-root raw --arxiv-id <arxiv-id> --title "<title-or-arxiv-id>"`. Continue from the returned `canonical_ingest_path`. The helper tries arXiv source first and falls back to PDF; do not call `fetch_arxiv.py` for a single paper because it is RSS-only.
 3. If the source is a local `.tex`, use it directly.
@@ -266,5 +273,5 @@ See `references/error-handling.md`. Highlights: source parse failures cascade te
 
 - Semantic Scholar (via `tools/fetch_s2.py`)
 - DeepXiv (via `tools/fetch_deepxiv.py`, optional; graceful fallback)
-- Zotero (via `tools/fetch_zotero.py`, only when the source is a Zotero reference; this source type is simply unavailable when unconfigured)
+- Zotero: prefers the `zotero` MCP server (when the local Zotero app is connected, Step 1 uses it for dedup and prefers its full PDF text, the user's annotations, and its Better BibTeX citation key); when the MCP server isn't connected or misses, `tools/fetch_zotero.py` (Zotero Web API, requires `ZOTERO_API_KEY` + `ZOTERO_LIBRARY_ID`) remains a fallback for an explicit Zotero reference as the source. This source type is simply unavailable when neither is configured — every other source type is unaffected.
 - arXiv (source download)

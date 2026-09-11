@@ -103,13 +103,14 @@ topic 模式下若 S2 不可用，工具会继续用可用的通道产出；检�
 - 一行 rationale（工具已产出：anchor 命中数、influential citations、年份）
 - 工具带出 TLDR 时一并展示（topic 模式常有；anchor 模式通常没有 —— recommendations endpoint 不返回 TLDR）
 
-最后附一行 "next step" 提示：
+最后附 "next step" 提示：
 
 ```
 如需 ingest：/ingest https://arxiv.org/abs/<arxiv-id>
+如需长期收藏：通过 `zotero` MCP 工具（如 add-by-DOI/add-by-identifier）加入 Zotero —— Zotero 是论文库的唯一权威来源，不要让 wiki 另存一份副本。
 ```
 
-不要自行 ingest。选择权归用户。
+不要自行 ingest，也不要自行加入 Zotero。选择权归用户。
 
 ### Step 4: 日志
 
