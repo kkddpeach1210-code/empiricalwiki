@@ -1,0 +1,4 @@
+{
+  "buildCommand": "bash tools/view.sh --build",
+  "outputDirectory": "site/.quartz/public"
+}
