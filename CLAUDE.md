@@ -151,6 +151,7 @@
 - **claim confidence 区间**：0.0-1.0，evidence 每次变动时重新评估。
 - **实验模块对经管实证是可选项**：Stata 式实证流程优先使用 `models/`、`tables/`、`identification/` 和 `robustness/`。`experiments/` 仅保留给计算实验、仿真或机器学习任务。
 - **DeepXiv token**：`DEEPXIV_TOKEN` 环境变量。未设置时 SDK 自动注册（写入 `~/.env`）。免费额度 10,000 请求/天。DeepXiv 不可用时所有 skill 自动回退到 S2+RSS 模式。
+- **Zotero 直连**：`ZOTERO_API_KEY` + `ZOTERO_LIBRARY_ID`（可选 `ZOTERO_LIBRARY_TYPE`，默认 `user`）环境变量，见 `config/setup-guide.md` Key 4 或 `/setup`。配置后 `/ingest` 的 `source` 可直接传 Zotero item key 或 `zotero.org` / `zotero://` 链接，由 `tools/fetch_zotero.py` 拉取元数据与 PDF 附件到 `raw/tmp/` 后再走本地 PDF 预处理；未配置时该来源类型不可用，其余来源类型不受影响。
 
 ---
 
