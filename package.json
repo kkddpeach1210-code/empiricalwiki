@@ -1,0 +1,7 @@
+{
+  "private": true,
+  "description": "Root manifest for hosting config only (Quartz itself lives in the gitignored site/.quartz/ clone made by tools/view.sh). Pins the Node.js version Vercel builds with.",
+  "engines": {
+    "node": "22.x"
+  }
+}
