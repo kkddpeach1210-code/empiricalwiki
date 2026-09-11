@@ -167,6 +167,7 @@
 | `/edit` | `.claude/skills/edit/SKILL.md` | 手动 |
 | `/check` | `.claude/skills/check/SKILL.md` | 每两周/手动 |
 | `/daily-arxiv` | `.claude/skills/daily-arxiv/SKILL.md` | 手动（可自行配置 cron） |
+| `/publish-demo` | `.claude/skills/publish-demo/SKILL.md` | 手动 |
 | `/novelty` | `.claude/skills/novelty/SKILL.md` | 手动 |
 | `/review` | `.claude/skills/review/SKILL.md` | 手动 |
 | `/ideate` | `.claude/skills/ideate/SKILL.md` | 手动 |
