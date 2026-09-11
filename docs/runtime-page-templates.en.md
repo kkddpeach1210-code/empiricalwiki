@@ -19,6 +19,7 @@ paper_kind: empirical    # empirical | theory | both — routes ingest to /empir
 date_added: YYYY-MM-DD
 source_type: tex         # tex | pdf
 s2_id: ""
+citation_key: ""         # paper reference key; prefer Zotero's Better BibTeX key (see /ingest Step 1), else leave blank — never invent one
 keywords: []
 domain: ""               # empirical accounting / finance / management / economics
 code_url: ""

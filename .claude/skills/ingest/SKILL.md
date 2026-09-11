@@ -94,6 +94,13 @@ export PYTHON_BIN
 
 ### Step 1: 解析来源
 
+**先查 Zotero**（`zotero` MCP server 已连接时）：不论来源是 arXiv URL 还是本地 `.pdf`/`.tex`，先用能拿到的标识符（标题、arXiv ID、DOI）通过 `zotero` MCP 工具在用户的 Zotero 库里查找是否已有对应条目。
+
+- 命中：直接从该条目的 PDF 附件拉取全文，以及用户自己的 highlights/annotations（后续正文与 `## My take` 可用），**不要**再调用 `prepare_paper_source.py` 或 `init_discovery.py download` 重新抓取内容；把该条目的 Better BibTeX citation key 写入论文 frontmatter 的 `citation_key` 字段 —— **不要**在 Step 2 里自己拼一个或让模型编造。
+- 未命中，或 `zotero` MCP server 未连接：本地 fetch 脚本是 fallback，按下面 1-4 的原流程继续；`citation_key` 留空。
+
+INIT MODE 下（见下一条）同样适用 Zotero 优先检查，但仍以 `canonical_ingest_path` 作为正文来源，不因命中 Zotero 而绕开 manifest 交接。
+
 1. 如果 `/init` 交接了 `canonical_ingest_path`，进入 **INIT MODE** 并原样消费该路径，不要重新扫描 `raw/`。详见 `references/init-mode.md`。
 2. 如果来源是 arXiv URL，先提取 arXiv ID；可用时通过 `"$PYTHON_BIN" tools/fetch_s2.py paper <arxiv-id>` 恢复标题，然后运行 `"$PYTHON_BIN" tools/init_discovery.py download --raw-root raw --arxiv-id <arxiv-id> --title "<title-or-arxiv-id>"`。后续从返回的 `canonical_ingest_path` 继续。该 helper 会先尝试 arXiv source，再 fallback 到 PDF；不要用 `fetch_arxiv.py` 处理单篇论文，因为它只用于 RSS。
 3. 如果来源是本地 `.tex`，直接使用。
@@ -266,5 +273,5 @@ Wiki: +1 paper, +{N} claims, +{M} concepts, +{K} edges
 
 - Semantic Scholar（via `tools/fetch_s2.py`）
 - DeepXiv（via `tools/fetch_deepxiv.py`，可选；不可用时自动降级）
-- Zotero（via `tools/fetch_zotero.py`，仅当来源是 Zotero 引用；未配置时该来源类型不可用）
+- Zotero：优先 `zotero` MCP server（本地 Zotero App 已连接时，Step 1 用它查重并优先提供 PDF 全文、用户 annotations 与 Better BibTeX citation key）；MCP 未连接或未命中时，`tools/fetch_zotero.py`（Zotero Web API，需要 `ZOTERO_API_KEY` + `ZOTERO_LIBRARY_ID`）仍可作为来源是显式 Zotero 引用时的 fallback。两者都不可用时该来源类型不可用，其余来源不受影响。
 - arXiv（源下载）

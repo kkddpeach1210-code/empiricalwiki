@@ -192,6 +192,8 @@ Output summary:
 - Recommended manual ingest candidates (top 3 most notable from relevance = 2)
 - Next run time reminder
 
+For papers recommended for manual ingest, or that the user wants to keep long-term, note that they should be added to the Zotero library via the `zotero` MCP tool (e.g. add-by-DOI/add-by-identifier) rather than relying solely on the scraped copy in `raw/discovered/` — Zotero is the single source of truth for the paper library.
+
 ## Constraints
 
 - **Only ingest papers with relevance >= 3**: leave the rest for user judgment, do not auto-create wiki pages

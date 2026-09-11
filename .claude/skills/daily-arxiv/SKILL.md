@@ -192,6 +192,8 @@ argument-hint: "[--hours 24] [--max-ingest 5] [--dry-run]"
 - 建议手动 ingest 的论文（相关性 = 2 中最值得关注的 top 3）
 - 下次运行时间提示
 
+对建议手动 ingest 或用户想长期保留的论文，提示：应通过 `zotero` MCP 工具（如 add-by-DOI/add-by-identifier）加入 Zotero 收藏，而不是仅靠 `raw/discovered/` 里的抓取副本 —— Zotero 才是论文库的唯一权威来源。
+
 ## Constraints
 
 - **只 ingest 相关性 >= 3 的论文**：其余留给用户判断，不自动创建 wiki 页面
