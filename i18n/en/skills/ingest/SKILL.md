@@ -1,6 +1,6 @@
 ---
-description: Ingest a paper into the wiki — creates pages (papers + concepts + people + claims) and builds all cross-references and graph edges. Trigger whenever the user says "ingest", "add this paper", drops a `.pdf` / `.tex` / arXiv URL, or asks to fold a paper into the knowledge base.
-argument-hint: <local-path-or-arXiv-URL> [--discover]
+description: Ingest a paper into the wiki — creates pages (papers + concepts + people + claims) and builds all cross-references and graph edges. Trigger whenever the user says "ingest", "add this paper", drops a `.pdf` / `.tex` / arXiv URL / Zotero link, or asks to fold a paper into the knowledge base.
+argument-hint: <local-path-or-arXiv-URL-or-Zotero-ref> [--discover]
 ---
 
 # /ingest
@@ -19,7 +19,7 @@ Open `docs/runtime-page-templates.en.md` before drafting any wiki page frontmatt
 
 ## Inputs
 
-- `source`: one of — arXiv URL (e.g. `https://arxiv.org/abs/2106.09685`), local `.tex`, local `.pdf`, or a `canonical_ingest_path` handed off by `/init` via `.checkpoints/init-sources.json`(see `references/init-mode.md`)
+- `source`: one of — arXiv URL (e.g. `https://arxiv.org/abs/2106.09685`), local `.tex`, local `.pdf`, a Zotero reference (a `zotero.org/.../items/<key>` or `zotero://select/.../items/<key>` link, or a bare item key; requires `ZOTERO_API_KEY` + `ZOTERO_LIBRARY_ID`, see `config/setup-guide.md` Key 4), or a `canonical_ingest_path` handed off by `/init` via `.checkpoints/init-sources.json`(see `references/init-mode.md`)
 - `--discover` (optional, default **off**): after the final report, invoke `/discover --anchor <this-paper's-arxiv-id>` and append the shortlist to the report as "Related papers you may want to ingest next". Never auto-ingests the suggestions. Skipped automatically in INIT MODE. Treat this as a user-owned flag: do not set it based on repo state.
 
 ## Outputs
@@ -98,6 +98,7 @@ export PYTHON_BIN
 2. If the source is an arXiv URL, extract the arXiv ID, use `"$PYTHON_BIN" tools/fetch_s2.py paper <arxiv-id>` to recover the title when possible, then run `"$PYTHON_BIN" tools/init_discovery.py download --raw-root raw --arxiv-id <arxiv-id> --title "<title-or-arxiv-id>"`. Continue from the returned `canonical_ingest_path`. The helper tries arXiv source first and falls back to PDF; do not call `fetch_arxiv.py` for a single paper because it is RSS-only.
 3. If the source is a local `.tex`, use it directly.
 4. If the source is a local `.pdf`, run the preprocessing pipeline in `references/pdf-preprocessing.md` to produce a prepared `.tex` under `raw/tmp/` before continuing.
+5. If the source is a Zotero reference (`zotero.org/.../items/<key>`, `zotero://select/.../items/<key>`, or a bare item key), first fetch its metadata with `"$PYTHON_BIN" tools/fetch_zotero.py item "<ref>"` (`data.title`, `data.DOI`, `data.url` may carry an arXiv hint), then download its PDF attachment with `"$PYTHON_BIN" tools/fetch_zotero.py download "<ref>" raw/tmp/zotero/<slug>.pdf`. Treat the downloaded PDF exactly like a local `.pdf` from step 4 and continue through preprocessing; pass the Zotero title through as one candidate for the "agent-trusted title" in `references/pdf-preprocessing.md`'s `--title`. If no stored PDF attachment is found (`find_pdf_attachment` returns empty) or credentials aren't configured, report to the user and stop — do not treat bare metadata as a prepared source.
 
 Raw persistence rule: never copy or duplicate a file already under `raw/discovered/`, `raw/tmp/`, or `raw/papers/` into a different raw subtree.
 
@@ -248,6 +249,7 @@ See `references/error-handling.md`. Highlights: source parse failures cascade te
 - `"$PYTHON_BIN" tools/init_discovery.py download --raw-root raw --arxiv-id <id> --title "<title-or-id>"` — single-paper arXiv source/PDF download into `raw/discovered/`
 - `"$PYTHON_BIN" tools/fetch_s2.py paper|citations|references <arxiv-id>`
 - `"$PYTHON_BIN" tools/fetch_deepxiv.py brief|head|social <arxiv-id>`
+- `"$PYTHON_BIN" tools/fetch_zotero.py item|download <zotero-ref> [dest-path]` — only when the source is a Zotero reference; requires `ZOTERO_API_KEY` + `ZOTERO_LIBRARY_ID`
 - `"$PYTHON_BIN" tools/discover.py from-anchors --id <arxiv-id> --wiki-root wiki --limit 10 --output-checkpoint .checkpoints/ --markdown` — only when `--discover` is set
 
 ### Shared References
@@ -264,4 +266,5 @@ See `references/error-handling.md`. Highlights: source parse failures cascade te
 
 - Semantic Scholar (via `tools/fetch_s2.py`)
 - DeepXiv (via `tools/fetch_deepxiv.py`, optional; graceful fallback)
+- Zotero (via `tools/fetch_zotero.py`, only when the source is a Zotero reference; this source type is simply unavailable when unconfigured)
 - arXiv (source download)

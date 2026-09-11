@@ -8,6 +8,9 @@ Open this reference when a step fails. `/ingest` prefers to degrade gracefully: 
 - **PDF text extraction fails**: fall back to a vision-API pass on the first few pages to recover the title and abstract, then run the preprocessing pipeline in `references/pdf-preprocessing.md` with the recovered title.
 - **No readable source at all**: stop and report. Do not create a paper page from a title alone — a paper page without grounded content is noise.
 - **INIT MODE input unreadable**: do not attempt to re-prepare the source (INIT MODE is read-only on `raw/`). Stop, record the failure, and let the parent `/init` retry or skip the paper at fan-in.
+- **Zotero credentials not configured** (`fetch_zotero.py` reports missing `ZOTERO_API_KEY`/`ZOTERO_LIBRARY_ID`): stop and report, pointing to `/setup` or `config/setup-guide.md` Key 4. Do not carry the Zotero reference forward as a plain string.
+- **Zotero item has no PDF attachment** (`find_pdf_attachment` returns empty): stop and report the item key/title, and let the user attach a PDF in Zotero or supply a local path / arXiv URL instead.
+- **Zotero item key can't be resolved or 404s**: treat as "no readable source at all" — stop and report the original reference string.
 
 ## External APIs
 

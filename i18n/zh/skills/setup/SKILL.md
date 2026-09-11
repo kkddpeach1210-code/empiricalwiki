@@ -1,5 +1,5 @@
 ---
-description: 交互式 API key 配置引导 — 检测当前 .env 状态，逐步引导配置 Semantic Scholar、DeepXiv 和 Review LLM
+description: 交互式 API key 配置引导 — 检测当前 .env 状态，逐步引导配置 Semantic Scholar、DeepXiv、Review LLM 和 Zotero
 ---
 
 # /setup
@@ -53,6 +53,8 @@ keys = {
     'LLM_API_KEY':              'Review LLM（API key）',
     'LLM_BASE_URL':             'Review LLM（base URL）',
     'LLM_MODEL':                'Review LLM（模型名）',
+    'ZOTERO_API_KEY':           'Zotero（API key）',
+    'ZOTERO_LIBRARY_ID':        'Zotero（library ID）',
 }
 for k, label in keys.items():
     v = os.environ.get(k, '').strip()
@@ -81,6 +83,7 @@ python3 --version
 可选：
 ✗  DeepXiv                 — 未配置（语义搜索不可用）
 ✗  Review LLM              — 未配置（跨模型 review 不可用）
+✗  Zotero                  — 未配置（/ingest 无法直接读取 Zotero 库）
 ```
 
 询问用户："您想配置哪些？（可以跳过任意一个或全部）"
@@ -201,6 +204,30 @@ stdout → token 值；stderr → 人类可读状态（直接透传，不要抑�
 
 ---
 
+#### 4e：Zotero API
+
+**解释**："配置后，`/ingest` 可以直接接受 Zotero item key 或
+`zotero.org` / `zotero://` 链接作为来源，自动拉取该条目的 PDF 附件，
+不再需要你手动把 PDF 导出到 `raw/papers/`。"
+
+**引导获取**：
+1. 打开 https://www.zotero.org/settings/keys
+2. 点击 "Create new private key"，勾选对目标 library（个人库和/或某些 group）的读权限
+3. 复制生成的 key
+4. 找 library ID：个人库用同一设置页上显示的数字 userID；group 库用该
+   group 主页 URL 中的数字 group ID（`https://www.zotero.org/groups/<GROUP_ID>/...`）
+
+**询问**："您是否要配置 Zotero？（提供 API key + library ID，或输入 'skip' 跳过）"
+
+**如果提供了值**，依次询问并写入 `.env`：
+1. `ZOTERO_API_KEY`
+2. `ZOTERO_LIBRARY_ID`
+3. `ZOTERO_LIBRARY_TYPE`（可选，默认 `user`；group 库填 `group`）
+
+沿用 4a 的写入规则：若 `.env` 中已有对应变量名（即使为空），替换该行；否则追加。
+
+---
+
 ### Step 5：验证配置
 
 用户完成配置后，运行验证检查：
@@ -213,7 +240,7 @@ try:
     import _env
 except Exception:
     pass
-keys = ['SEMANTIC_SCHOLAR_API_KEY', 'DEEPXIV_TOKEN', 'LLM_API_KEY', 'LLM_BASE_URL', 'LLM_MODEL']
+keys = ['SEMANTIC_SCHOLAR_API_KEY', 'DEEPXIV_TOKEN', 'LLM_API_KEY', 'LLM_BASE_URL', 'LLM_MODEL', 'ZOTERO_API_KEY', 'ZOTERO_LIBRARY_ID']
 for k in keys:
     v = os.environ.get(k, '').strip()
     print(f'已配置  {k}' if v else f'未配置  {k}')
