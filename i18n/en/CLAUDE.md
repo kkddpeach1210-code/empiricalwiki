@@ -171,6 +171,7 @@ Standard log line:
 | `/edit` | `.claude/skills/edit/SKILL.md` | manual |
 | `/check` | `.claude/skills/check/SKILL.md` | biweekly/manual |
 | `/daily-arxiv` | `.claude/skills/daily-arxiv/SKILL.md` | manual (cron-able) |
+| `/publish-demo` | `.claude/skills/publish-demo/SKILL.md` | manual |
 | `/novelty` | `.claude/skills/novelty/SKILL.md` | manual |
 | `/review` | `.claude/skills/review/SKILL.md` | manual |
 | `/ideate` | `.claude/skills/ideate/SKILL.md` | manual |
