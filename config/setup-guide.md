@@ -140,7 +140,46 @@ The value of cross-model review comes from genuine independence.
 
 ---
 
-## Key 4: arXiv Categories (optional)
+## Key 4: Zotero API (two variables, one optional)
+
+| Field | Value |
+|-------|-------|
+| `.env` variables | `ZOTERO_API_KEY`, `ZOTERO_LIBRARY_ID`, optional `ZOTERO_LIBRARY_TYPE` |
+| Required? | No (optional) |
+| Free? | Yes |
+
+**What it does**: Lets `/ingest` read items and download PDF attachments directly
+from your Zotero library via the Zotero Web API, instead of you exporting a PDF
+by hand into `raw/papers/` first.
+
+**Which skills use it**:
+- `/ingest` — accepts a Zotero item key or a `zotero.org`/`zotero://` link as the
+  `source` argument; resolves the item's metadata and pulls its stored PDF into
+  `raw/tmp/` for the normal ingest pipeline to consume
+
+**Without these keys**: `/ingest` still works exactly as before with local
+`.pdf`/`.tex` files and arXiv URLs. A Zotero reference just won't be recognized
+as a valid source.
+
+**How to get it**:
+1. Go to https://www.zotero.org/settings/keys
+2. Click "Create new private key"
+3. Grant it read access to the library you want to sync (personal library,
+   and/or specific groups)
+4. Copy the generated key
+5. Find your library ID:
+   - **Personal library**: the numeric userID shown on the same settings page
+   - **Group library**: the numeric group ID from the group's Zotero URL
+     (`https://www.zotero.org/groups/<GROUP_ID>/...`)
+
+**Format**:
+- `ZOTERO_API_KEY` — alphanumeric string, e.g. `P9mH3xQ2...`
+- `ZOTERO_LIBRARY_ID` — numeric string
+- `ZOTERO_LIBRARY_TYPE` — `user` (default) or `group`
+
+---
+
+## Key 5: arXiv Categories (optional)
 
 | Field | Value |
 |-------|-------|

@@ -8,6 +8,9 @@
 - **PDF 文本提取失败**：对前几页走 vision API 恢复 title 与 abstract，再带上恢复的 title 走 `references/pdf-preprocessing.md` 的预处理流程。
 - **完全没有可读来源**：停机并报告。不得仅凭 title 就创建论文页面 —— 无内容支撑的论文页面是噪声。
 - **INIT MODE 输入不可读**：不得尝试重新 prepare（INIT MODE 下 `raw/` 只读）。停机、记录失败，让上层 `/init` 在 fan-in 时决定重试或跳过。
+- **Zotero 凭据未配置**（`fetch_zotero.py` 报 `ZOTERO_API_KEY`/`ZOTERO_LIBRARY_ID` 缺失）：停机并报告，指向 `/setup` 或 `config/setup-guide.md` Key 4。不得把 Zotero 引用当作普通字符串继续往下走。
+- **Zotero 条目无 PDF 附件**（`find_pdf_attachment` 返回空）：停机并报告 item key/标题，让用户在 Zotero 里补传 PDF 或改用本地路径 / arXiv URL。
+- **Zotero item key 无法解析或 404**：按"完全没有可读来源"处理，停机并报告原始引用字符串。
 
 ## 外部 API
 

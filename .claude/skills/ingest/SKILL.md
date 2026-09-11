@@ -1,6 +1,6 @@
 ---
-description: 把一篇论文 ingest 进 wiki —— 建立 papers + concepts + people + claims 页面，并完成所有双向交叉引用与 graph edge。当用户说 "ingest"、"加入这篇论文"、丢 `.pdf` / `.tex` / arXiv URL 或要求把论文折叠进知识库时触发。
-argument-hint: <local-path-or-arXiv-URL> [--discover]
+description: 把一篇论文 ingest 进 wiki —— 建立 papers + concepts + people + claims 页面，并完成所有双向交叉引用与 graph edge。当用户说 "ingest"、"加入这篇论文"、丢 `.pdf` / `.tex` / arXiv URL / Zotero 链接或要求把论文折叠进知识库时触发。
+argument-hint: <local-path-or-arXiv-URL-or-Zotero-ref> [--discover]
 ---
 
 # /ingest
@@ -19,7 +19,7 @@ argument-hint: <local-path-or-arXiv-URL> [--discover]
 
 ## Inputs
 
-- `source`：四种之一 —— arXiv URL（例如 `https://arxiv.org/abs/2106.09685`）、本地 `.tex`、本地 `.pdf`、或 `/init` 通过 `.checkpoints/init-sources.json` 交接的 `canonical_ingest_path`（见 `references/init-mode.md`）
+- `source`：五种之一 —— arXiv URL（例如 `https://arxiv.org/abs/2106.09685`）、本地 `.tex`、本地 `.pdf`、Zotero 引用（`zotero.org/.../items/<key>` 或 `zotero://select/.../items/<key>` 链接，或裸 item key；需要 `ZOTERO_API_KEY` + `ZOTERO_LIBRARY_ID`，见 `config/setup-guide.md` Key 4），或 `/init` 通过 `.checkpoints/init-sources.json` 交接的 `canonical_ingest_path`（见 `references/init-mode.md`）
 - `--discover`（可选，默认 **关闭**）：在最终 report 之后调用 `/discover --anchor <this-paper's-arxiv-id>`，把 shortlist 作为 "接下来可能想 ingest 的相关论文" 附在 report 里。从不自动 ingest 推荐结果。INIT MODE 下自动跳过。视为用户可见参数：不得仅根据仓库状态擅自开启。
 
 ## Outputs
@@ -98,6 +98,7 @@ export PYTHON_BIN
 2. 如果来源是 arXiv URL，先提取 arXiv ID；可用时通过 `"$PYTHON_BIN" tools/fetch_s2.py paper <arxiv-id>` 恢复标题，然后运行 `"$PYTHON_BIN" tools/init_discovery.py download --raw-root raw --arxiv-id <arxiv-id> --title "<title-or-arxiv-id>"`。后续从返回的 `canonical_ingest_path` 继续。该 helper 会先尝试 arXiv source，再 fallback 到 PDF；不要用 `fetch_arxiv.py` 处理单篇论文，因为它只用于 RSS。
 3. 如果来源是本地 `.tex`，直接使用。
 4. 如果来源是本地 `.pdf`，先走 `references/pdf-preprocessing.md` 的预处理流程，在 `raw/tmp/` 下生成 prepared `.tex`，再继续。
+5. 如果来源是 Zotero 引用（`zotero.org/.../items/<key>`、`zotero://select/.../items/<key>` 或裸 item key），先用 `"$PYTHON_BIN" tools/fetch_zotero.py item "<ref>"` 取回元数据（`data.title`、`data.DOI`、`data.url` 中可能含 arXiv 线索），再用 `"$PYTHON_BIN" tools/fetch_zotero.py download "<ref>" raw/tmp/zotero/<slug>.pdf` 把该条目的 PDF 附件下载到 `raw/tmp/`。下载到的 PDF 就地当作步骤 4 的本地 `.pdf` 继续走预处理；把 Zotero 元数据里的标题作为 `references/pdf-preprocessing.md` 中 "agent 可信标题" 的来源之一传给 `--title`。找不到已存的 PDF 附件（`find_pdf_attachment` 返回空）或凭据未配置时，向用户报告并停止，不要把裸元数据当 prepared source 使用。
 
 raw 持久化规则：已经在 `raw/discovered/`、`raw/tmp/`、`raw/papers/` 中的文件，不得被复制或重写到别的 raw 子目录。
 
@@ -248,6 +249,7 @@ Wiki: +1 paper, +{N} claims, +{M} concepts, +{K} edges
 - `"$PYTHON_BIN" tools/init_discovery.py download --raw-root raw --arxiv-id <id> --title "<title-or-id>"` —— 单篇论文下载到 `raw/discovered/`，优先 arXiv source，fallback 到 PDF
 - `"$PYTHON_BIN" tools/fetch_s2.py paper|citations|references <arxiv-id>`
 - `"$PYTHON_BIN" tools/fetch_deepxiv.py brief|head|social <arxiv-id>`
+- `"$PYTHON_BIN" tools/fetch_zotero.py item|download <zotero-ref> [dest-path]` —— 仅当来源是 Zotero 引用；需要 `ZOTERO_API_KEY` + `ZOTERO_LIBRARY_ID`
 - `"$PYTHON_BIN" tools/discover.py from-anchors --id <arxiv-id> --wiki-root wiki --limit 10 --output-checkpoint .checkpoints/ --markdown` —— 仅当 `--discover` 开启
 
 ### Shared References
@@ -264,4 +266,5 @@ Wiki: +1 paper, +{N} claims, +{M} concepts, +{K} edges
 
 - Semantic Scholar（via `tools/fetch_s2.py`）
 - DeepXiv（via `tools/fetch_deepxiv.py`，可选；不可用时自动降级）
+- Zotero（via `tools/fetch_zotero.py`，仅当来源是 Zotero 引用；未配置时该来源类型不可用）
 - arXiv（源下载）

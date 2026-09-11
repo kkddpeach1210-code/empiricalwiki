@@ -148,6 +148,7 @@ Standard log line:
 - **Claim confidence range**: 0.0-1.0; re-evaluate every time evidence changes.
 - **Experiments are optional for empirical social-science work**: use `models/`, `tables/`, `identification/`, and `robustness/` for Stata-style empirical pipelines. `experiments/` remains available for computational or simulation work.
 - **DeepXiv token**: `DEEPXIV_TOKEN` env variable. If unset, the SDK auto-registers (writes to `~/.env`). Free tier: 10,000 requests/day. When DeepXiv is unavailable, all skills fall back to S2+RSS mode.
+- **Direct Zotero link**: `ZOTERO_API_KEY` + `ZOTERO_LIBRARY_ID` env variables (optional `ZOTERO_LIBRARY_TYPE`, defaults to `user`) — see `config/setup-guide.md` Key 4 or `/setup`. Once configured, `/ingest`'s `source` argument accepts a Zotero item key or a `zotero.org` / `zotero://` link directly; `tools/fetch_zotero.py` pulls the item's metadata and PDF attachment into `raw/tmp/` before it enters the normal local-PDF preprocessing path. Without it, this source type is simply unavailable — every other source type is unaffected.
 
 ---
 

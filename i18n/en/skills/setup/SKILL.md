@@ -1,5 +1,5 @@
 ---
-description: Interactive API key configuration guide — checks current .env state and walks you through Semantic Scholar, DeepXiv, and Review LLM setup
+description: Interactive API key configuration guide — checks current .env state and walks you through Semantic Scholar, DeepXiv, Review LLM, and Zotero setup
 ---
 
 # /setup
@@ -53,6 +53,8 @@ keys = {
     'LLM_API_KEY':              'Review LLM (API key)',
     'LLM_BASE_URL':             'Review LLM (base URL)',
     'LLM_MODEL':                'Review LLM (model)',
+    'ZOTERO_API_KEY':           'Zotero (API key)',
+    'ZOTERO_LIBRARY_ID':        'Zotero (library ID)',
 }
 for k, label in keys.items():
     v = os.environ.get(k, '').strip()
@@ -81,6 +83,7 @@ Recommended:
 Optional:
 ✗  DeepXiv                 — not set  (semantic search unavailable)
 ✗  Review LLM              — not set  (cross-model review unavailable)
+✗  Zotero                  — not set  (/ingest can't read your Zotero library directly)
 ```
 
 Ask the user: "Which would you like to configure? (You can skip any or all.)"
@@ -203,6 +206,34 @@ it if the user explicitly asks, or if their research area is clearly outside ML/
 
 ---
 
+#### 4e: Zotero API
+
+**Explain**: "Once configured, /ingest can accept a Zotero item key or a
+`zotero.org` / `zotero://` link directly as its source, automatically pulling
+that item's PDF attachment — no need to manually export the PDF into
+`raw/papers/` first."
+
+**Guide to get it**:
+1. Go to https://www.zotero.org/settings/keys
+2. Click "Create new private key", grant it read access to the library you
+   want (personal library and/or specific groups)
+3. Copy the generated key
+4. Find your library ID: for a personal library, use the numeric userID shown
+   on the same settings page; for a group library, use the numeric group ID
+   from the group's Zotero URL (`https://www.zotero.org/groups/<GROUP_ID>/...`)
+
+**Ask**: "Would you like to configure Zotero? (provide an API key + library ID, or 'skip')"
+
+**If provided**, ask for and write to `.env` in order:
+1. `ZOTERO_API_KEY`
+2. `ZOTERO_LIBRARY_ID`
+3. `ZOTERO_LIBRARY_TYPE` (optional, defaults to `user`; set to `group` for a group library)
+
+Follow the same write rule as 4a: if the variable already exists in `.env`
+(even empty), replace that line; otherwise append it.
+
+---
+
 ### Step 5: Verify Configuration
 
 After the user finishes configuring, run the verification check from `config/setup-guide.md`:
@@ -215,7 +246,7 @@ try:
     import _env
 except Exception:
     pass
-keys = ['SEMANTIC_SCHOLAR_API_KEY', 'DEEPXIV_TOKEN', 'LLM_API_KEY', 'LLM_BASE_URL', 'LLM_MODEL']
+keys = ['SEMANTIC_SCHOLAR_API_KEY', 'DEEPXIV_TOKEN', 'LLM_API_KEY', 'LLM_BASE_URL', 'LLM_MODEL', 'ZOTERO_API_KEY', 'ZOTERO_LIBRARY_ID']
 for k in keys:
     v = os.environ.get(k, '').strip()
     print(f'SET   {k}' if v else f'UNSET {k}')
