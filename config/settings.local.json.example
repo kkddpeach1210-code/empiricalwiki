@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(*)",
+      "Read(*)",
+      "Edit(*)",
+      "WebSearch",
+      "WebFetch(*)",
+      "MCP(*)"
+    ]
+  },
+  "enableAllProjectMcpServers": true
+}

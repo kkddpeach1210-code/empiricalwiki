@@ -1,0 +1,279 @@
+# ============================================================================
+# EmpiricalWiki - One-Click Setup (Windows / PowerShell)
+# ============================================================================
+# Usage:
+#   powershell -ExecutionPolicy Bypass -File .\setup.ps1            # English (default)
+#   powershell -ExecutionPolicy Bypass -File .\setup.ps1 -Lang zh   # Chinese
+#
+# Mirrors setup.sh: prerequisites -> venv + deps -> config -> activate i18n -> verify.
+# API key configuration (Semantic Scholar, DeepXiv, Review LLM) is handled
+# interactively by Claude Code - run /setup after starting Claude Code.
+# ============================================================================
+
+[CmdletBinding()]
+param(
+    [ValidateSet("en", "zh")]
+    [string]$Lang = "en"
+)
+
+$ErrorActionPreference = "Stop"
+
+function Write-Info($msg) { Write-Host "[INFO]  $msg" -ForegroundColor Blue }
+function Write-Ok($msg)   { Write-Host "[OK]    $msg" -ForegroundColor Green }
+function Write-Warn2($msg){ Write-Host "[WARN]  $msg" -ForegroundColor Yellow }
+function Write-Fail($msg) { Write-Host "[FAIL]  $msg" -ForegroundColor Red }
+
+$ProjectRoot = $PSScriptRoot
+$I18nDir = Join-Path $ProjectRoot "i18n\$Lang"
+if (-not (Test-Path $I18nDir)) {
+    Write-Fail "i18n\$Lang not found - run from the project root"
+    exit 1
+}
+
+Write-Host ""
+Write-Host "============================================"
+Write-Host "  EmpiricalWiki - Setup (Windows)"
+Write-Host "============================================"
+Write-Host ""
+
+# -- Step 1: Check prerequisites -------------------------------------------
+Write-Info "Checking prerequisites..."
+
+# Python: prefer `python`, fall back to `python3`
+$PythonCmd = $null
+foreach ($candidate in @("python", "python3", "py")) {
+    if (Get-Command $candidate -ErrorAction SilentlyContinue) {
+        $PythonCmd = $candidate
+        break
+    }
+}
+if (-not $PythonCmd) {
+    Write-Fail "Python not found. Install Python 3.9+ from https://www.python.org/downloads/"
+    exit 1
+}
+
+# Windows PowerShell 5.1 turns native stderr into NativeCommandError when
+# $ErrorActionPreference=Stop — wrap native probes so failures reach the
+# friendly Write-Fail paths instead of a red exception dump.
+$prevEAP = $ErrorActionPreference
+$ErrorActionPreference = "Continue"
+$pyVersionRaw = & $PythonCmd --version 2>&1
+if ($pyVersionRaw -match "(\d+)\.(\d+)\.(\d+)") {
+    $pyMajor = [int]$Matches[1]
+    $pyMinor = [int]$Matches[2]
+    if ($pyMajor -lt 3 -or ($pyMajor -eq 3 -and $pyMinor -lt 9)) {
+        Write-Fail "Python >= 3.9 required, found $pyVersionRaw"
+        exit 1
+    }
+    Write-Ok "Python $pyVersionRaw"
+} else {
+    Write-Fail "Could not parse Python version: $pyVersionRaw"
+    exit 1
+}
+
+# pip
+& $PythonCmd -m pip --version 2>&1 | Out-Null
+if ($LASTEXITCODE -ne 0) {
+    Write-Fail "pip not found. Run: $PythonCmd -m ensurepip"
+    exit 1
+}
+Write-Ok "pip available"
+$ErrorActionPreference = $prevEAP
+
+# Claude Code
+if (Get-Command claude -ErrorAction SilentlyContinue) {
+    Write-Ok "Claude Code installed"
+} else {
+    Write-Warn2 "Claude Code not found."
+    Write-Host ""
+    Write-Host "  Claude Code is required to use EmpiricalWiki skills."
+    Write-Host "  Install with:"
+    Write-Host "    npm install -g @anthropic-ai/claude-code"
+    Write-Host ""
+    # Prompt only when a human is attached; agent shells have no interactive
+    # host and Read-Host would hang or throw.
+    if ([Environment]::UserInteractive -and -not [Console]::IsInputRedirected) {
+        $reply = Read-Host "  Continue setup without Claude Code? [y/N]"
+        if ($reply -notmatch '^[Yy]$') {
+            Write-Host "  Install Claude Code first, then re-run setup.ps1"
+            exit 1
+        }
+    } else {
+        Write-Warn2 "Non-interactive shell: continuing without Claude Code (install it later)."
+    }
+}
+
+# -- Step 2: Python environment + dependencies -----------------------------
+Write-Host ""
+Write-Info "Setting up Python environment..."
+
+Push-Location $ProjectRoot
+try {
+    if ($env:VIRTUAL_ENV -or ($env:CONDA_DEFAULT_ENV -and $env:CONDA_DEFAULT_ENV -ne "base")) {
+        Write-Warn2 "Active environment detected; setup always installs EmpiricalWiki into .venv"
+    }
+
+    if (Test-Path ".venv") {
+        Write-Warn2 ".venv already exists, using it"
+    } else {
+        & $PythonCmd -m venv .venv
+        if ($LASTEXITCODE -ne 0) { throw "venv creation failed" }
+        Write-Ok "Created .venv"
+    }
+
+    $VenvPython = Join-Path $ProjectRoot ".venv\Scripts\python.exe"
+    if (-not (Test-Path $VenvPython)) {
+        Write-Fail "Expected $VenvPython but it does not exist"
+        exit 1
+    }
+    Write-Ok "Using .venv\Scripts\python.exe"
+
+    Write-Info "Installing dependencies into .venv..."
+    & $VenvPython -m pip install -r requirements.txt -q
+    if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
+    Write-Ok "Dependencies installed into .venv"
+
+    # -- Step 3: Configuration files ---------------------------------------
+    Write-Host ""
+    Write-Info "Setting up configuration..."
+
+    if (Test-Path ".env") {
+        Write-Warn2 ".env already exists, not overwriting"
+    } else {
+        Copy-Item ".env.example" ".env"
+        Write-Ok "Created .env from template"
+    }
+
+    if (-not (Test-Path ".claude")) { New-Item -ItemType Directory -Path ".claude" | Out-Null }
+    if (Test-Path ".claude\settings.local.json") {
+        Write-Warn2 ".claude\settings.local.json already exists, not overwriting"
+    } else {
+        Copy-Item "config\settings.local.json.example" ".claude\settings.local.json"
+        Write-Ok "Created .claude\settings.local.json"
+    }
+
+    # Seed the wiki scaffold (index.md / log.md / graph). These are gitignored
+    # working-tree files, so a fresh clone lacks them; init is write-if-missing.
+    & $VenvPython "tools\research_wiki.py" init wiki | Out-Null
+    Write-Ok "Wiki scaffold ready (index.md / log.md / graph)"
+
+    # -- Step 3b: Activate language files ----------------------------------
+    Write-Host ""
+    Write-Info "Activating language: $Lang"
+    Copy-Item (Join-Path $I18nDir "CLAUDE.md") "CLAUDE.md" -Force
+
+    $skillsSrc = Join-Path $I18nDir "skills"
+    Get-ChildItem -Path $skillsSrc -Directory | ForEach-Object {
+        $name = $_.Name
+        $destDir = Join-Path ".claude\skills" $name
+        if (-not (Test-Path $destDir)) { New-Item -ItemType Directory -Path $destDir -Force | Out-Null }
+        Get-ChildItem -Path $_.FullName -File | ForEach-Object {
+            Copy-Item $_.FullName (Join-Path $destDir $_.Name) -Force
+        }
+    }
+
+    $sharedDest = ".claude\skills\shared-references"
+    if (-not (Test-Path $sharedDest)) { New-Item -ItemType Directory -Path $sharedDest -Force | Out-Null }
+    Get-ChildItem -Path (Join-Path $I18nDir "shared-references") -Filter "*.md" | ForEach-Object {
+        Copy-Item $_.FullName (Join-Path $sharedDest $_.Name) -Force
+    }
+    Set-Content -Path ".claude\.current-lang" -Value $Lang -NoNewline
+    Write-Ok "Language files activated ($Lang)"
+
+    # -- Step 4: Verify installation ---------------------------------------
+    Write-Host ""
+    Write-Info "Verifying installation..."
+
+    $script:VerificationErrors = 0
+    $script:VerificationWarnings = 0
+
+    function Invoke-PythonCheck {
+        param(
+            [string]$Label,
+            [string]$Code,
+            [string]$WorkingDirectory = $ProjectRoot,
+            [switch]$WarningOnly
+        )
+
+        Push-Location $WorkingDirectory
+        try {
+            & $VenvPython -c $Code 2>$null | Out-Null
+            if ($LASTEXITCODE -eq 0) {
+                Write-Ok $Label
+            } elseif ($WarningOnly) {
+                Write-Warn2 $Label
+                $script:VerificationWarnings++
+            } else {
+                Write-Fail $Label
+                $script:VerificationErrors++
+            }
+        } finally {
+            Pop-Location
+        }
+    }
+
+    Invoke-PythonCheck -Label "PyMuPDF (fitz)" -Code "import fitz"
+    Invoke-PythonCheck -Label "requests" -Code "import requests"
+    Invoke-PythonCheck -Label "feedparser" -Code "import feedparser"
+
+    $toolChecks = @(
+        @{ name = "tools/init_discovery.py"; import = "from init_discovery import prepare_inputs" },
+        @{ name = "tools/fetch_s2.py";       import = "from fetch_s2 import search" },
+        @{ name = "tools/fetch_arxiv.py";    import = "from fetch_arxiv import fetch_recent" },
+        @{ name = "tools/research_wiki.py";  import = "from research_wiki import slugify" },
+        @{ name = "tools/lint.py";           import = "from lint import check_missing_fields" }
+    )
+    foreach ($c in $toolChecks) {
+        Invoke-PythonCheck -Label $c.name -Code $c.import -WorkingDirectory (Join-Path $ProjectRoot "tools")
+    }
+
+    & $VenvPython -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)" 2>$null | Out-Null
+    if ($LASTEXITCODE -eq 0) {
+        & $VenvPython -c "import deepxiv_sdk" 2>$null | Out-Null
+        if ($LASTEXITCODE -eq 0) {
+            Write-Ok "deepxiv-sdk (optional)"
+        } else {
+            Write-Warn2 "deepxiv-sdk unavailable; DeepXiv features will degrade but setup can continue"
+            $script:VerificationWarnings++
+        }
+    } else {
+        Write-Warn2 "Python < 3.10 detected inside .venv; deepxiv-sdk may be unavailable, so DeepXiv features may degrade"
+        $script:VerificationWarnings++
+    }
+} finally {
+    Pop-Location
+}
+
+# -- Done ------------------------------------------------------------------
+Write-Host ""
+Write-Host "============================================"
+if ($script:VerificationErrors -eq 0 -and $script:VerificationWarnings -eq 0) {
+    Write-Host "  Setup complete!" -ForegroundColor Green
+} elseif ($script:VerificationErrors -eq 0) {
+    Write-Host "  Setup complete with $script:VerificationWarnings warning(s)" -ForegroundColor Yellow
+} else {
+    Write-Host "  Setup complete with $script:VerificationErrors error(s) and $script:VerificationWarnings warning(s)" -ForegroundColor Yellow
+}
+Write-Host "============================================"
+Write-Host ""
+Write-Host "  Next steps:"
+Write-Host ""
+Write-Host "  1. Authenticate Claude Code (if not already):"
+Write-Host "       claude login"
+Write-Host ""
+Write-Host "  2. Activate the venv in your shell only if you want to run Python tools manually:"
+Write-Host "       .\.venv\Scripts\Activate.ps1"
+Write-Host "       setup.ps1 does not activate your current shell permanently."
+Write-Host "       /init will use .venv automatically when it exists."
+Write-Host ""
+Write-Host "  3. Start Claude Code:"
+Write-Host "       claude"
+Write-Host ""
+Write-Host "  4. Complete API key configuration (guided):"
+Write-Host "       /setup"
+Write-Host ""
+Write-Host "  5. Then initialize your wiki:"
+Write-Host "       /init [your-research-topic]"
+Write-Host ""
+Write-Host "  For more, see README.md"
+Write-Host ""

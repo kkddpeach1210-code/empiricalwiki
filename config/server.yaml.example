@@ -1,0 +1,72 @@
+# config/server.yaml — Remote GPU Server Configuration
+# ====================================================
+# Copy this file:  cp config/server.yaml.example config/server.yaml
+# Then fill in your server details below.
+#
+# Used by:  tools/remote.py (all SSH operations)
+#           /run-experiment --env remote
+
+# --- Connection -----------------------------------------------------------
+
+host: gpu1.cs.university.edu           # Hostname or IP
+user: researcher                        # SSH username
+port: 22                                # SSH port (optional, default 22)
+identity_file: ""                       # SSH key path (optional, e.g. ~/.ssh/id_ed25519)
+proxy_jump: ""                          # Jump host (optional, e.g. bastion.cs.edu)
+ssh_options: {}                         # Extra ssh -o options (optional)
+  # ServerAliveInterval: "60"
+  # ServerAliveCountMax: "3"
+
+# --- GPU Info (descriptive) -----------------------------------------------
+
+gpus: "4x A100 80GB"                   # Human-readable GPU description
+                                        # Written to wiki experiment pages for reference
+
+# --- Remote Paths ---------------------------------------------------------
+
+work_dir: /home/researcher/experiments  # Remote working directory for code + experiments
+                                        # Code is synced here; experiments run from here
+
+# --- Environment Activation (choose ONE) ---------------------------------
+
+# Option A: Conda environment (most common)
+conda:
+  path: /opt/conda                      # Path to conda installation
+  env: research                         # Conda environment name
+
+# Option B: Custom shell command (uncomment and fill in, comment out conda above)
+# env_setup: "module load cuda/12.1 && source /home/user/venv/bin/activate"
+
+# --- Code Sync Patterns ---------------------------------------------------
+
+sync:
+  include:                              # File patterns to sync to remote
+    - "*.py"
+    - "*.yaml"
+    - "*.yml"
+    - "*.json"
+    - "*.txt"
+    - "*.sh"
+    - "*.toml"
+    - "*.cfg"
+    - "Makefile"
+    - "Dockerfile"
+    - "requirements*.txt"
+  exclude:                              # File patterns to exclude from sync
+    - ".git/"
+    - "__pycache__/"
+    - "*.pyc"
+    - "data/"
+    - "wandb/"
+    - "checkpoints/"
+    - "*.pt"
+    - "*.pth"
+    - "*.ckpt"
+    - "*.safetensors"
+    - "*.bin"
+    - ".venv/"
+    - "node_modules/"
+
+# --- GPU Detection --------------------------------------------------------
+
+free_gpu_threshold_mib: 500             # GPU with memory.used < this is "free"
